@@ -1,4 +1,4 @@
-module github.com/mohammad-ahmadi-de/sqltestutil
+module github.com/HenrikPoulsen/sqltestutil
 
 go 1.18
 
