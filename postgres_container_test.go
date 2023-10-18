@@ -2,7 +2,8 @@ package sqltestutil_test
 
 import (
 	"context"
-	"github.com/mohammad-ahmadi-de/sqltestutil"
+	"github.com/HenrikPoulsen/sqltestutil"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -11,5 +12,7 @@ func TestStartPostgresContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.Shutdown(context.Background())
+
+	err = c.Shutdown(context.Background())
+	assert.NoError(t, err)
 }

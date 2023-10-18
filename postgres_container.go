@@ -54,19 +54,19 @@ type PostgresContainer struct {
 // container and then run sub-tests within there. The testify [2] suite
 // package provides a good way to structure these kinds of tests:
 //
-//     type ExampleTestSuite struct {
-//         suite.Suite
-//     }
+//	type ExampleTestSuite struct {
+//	    suite.Suite
+//	}
 //
-//     func (s *ExampleTestSuite) TestExample() {
-//         // test something
-//     }
+//	func (s *ExampleTestSuite) TestExample() {
+//	    // test something
+//	}
 //
-//     func TestExampleTestSuite(t *testing.T) {
-//         pg, _ := sqltestutil.StartPostgresContainer(context.Background(), WithVersion("12"))
-//         defer pg.Shutdown(ctx)
-//         suite.Run(t, &ExampleTestSuite{})
-//     }
+//	func TestExampleTestSuite(t *testing.T) {
+//	    pg, _ := sqltestutil.StartPostgresContainer(context.Background(), WithVersion("12"))
+//	    defer pg.Shutdown(ctx)
+//	    suite.Run(t, &ExampleTestSuite{})
+//	}
 //
 // [1]: https://github.com/golang/go/issues/37206
 // [2]: https://github.com/stretchr/testify
@@ -149,7 +149,7 @@ func StartPostgresContainer(ctx context.Context, options ...Option) (*PostgresCo
 			"POSTGRES_USER=" + containerObj.user,
 		},
 		Healthcheck: &container.HealthConfig{
-			Test:     []string{"CMD-SHELL", "pg_isready -U pgtest"},
+			Test:     []string{"CMD-SHELL", "psql -h localhost -p 5432 -U pgtest -c 'select 1'"},
 			Interval: time.Second,
 			Timeout:  time.Second,
 			Retries:  10,
