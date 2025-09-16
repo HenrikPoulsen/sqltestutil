@@ -1,17 +1,21 @@
 package sqltestutil
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
+
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
+
 	"io"
 	"math/big"
 	"net"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
@@ -121,16 +125,15 @@ func StartPostgresContainer(ctx context.Context, options ...Option) (*PostgresCo
 		return nil, err
 	}
 
-	image := "postgres:" + containerObj.version
-	_, _, err = cli.ImageInspectWithRaw(ctx, image)
+	imageName := "postgres:" + containerObj.version
+	var buf bytes.Buffer
+
+	_, err = cli.ImageInspect(ctx, imageName, client.ImageInspectWithRawResponse(&buf))
 	if err != nil {
-		_, notFound := err.(interface {
-			NotFound()
-		})
-		if !notFound {
+		if !errdefs.IsNotFound(err) {
 			return nil, err
 		}
-		pullReader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+		pullReader, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +145,7 @@ func StartPostgresContainer(ctx context.Context, options ...Option) (*PostgresCo
 	}
 
 	createResp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: image,
+		Image: imageName,
 		Env: []string{
 			"POSTGRES_DB=" + containerObj.dbName,
 			"POSTGRES_PASSWORD=" + containerObj.password,
@@ -166,20 +169,20 @@ func StartPostgresContainer(ctx context.Context, options ...Option) (*PostgresCo
 	}
 	defer func() {
 		if err != nil {
-			removeErr := cli.ContainerRemove(ctx, createResp.ID, types.ContainerRemoveOptions{})
+			removeErr := cli.ContainerRemove(ctx, createResp.ID, container.RemoveOptions{})
 			if removeErr != nil {
 				fmt.Println("error removing container:", removeErr)
 				return
 			}
 		}
 	}()
-	err = cli.ContainerStart(ctx, createResp.ID, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, createResp.ID, container.StartOptions{})
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			stopErr := cli.ContainerStop(ctx, createResp.ID, nil)
+			stopErr := cli.ContainerStop(ctx, createResp.ID, container.StopOptions{})
 			if stopErr != nil {
 				fmt.Println("error stopping container:", stopErr)
 				return
@@ -213,16 +216,16 @@ func (c *PostgresContainer) fixContainerLeak(ctx context.Context) error {
 	}
 	defer cli.Close()
 
-	data, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true, Filters: filters.NewArgs(filters.Arg("name", c.containerName))})
+	data, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: filters.NewArgs(filters.Arg("name", c.containerName))})
 	if err != nil {
 		return err
 	}
 	for i := range data {
-		err = cli.ContainerStop(ctx, data[i].ID, nil)
+		err = cli.ContainerStop(ctx, data[i].ID, container.StopOptions{})
 		if err != nil {
 			return err
 		}
-		err = cli.ContainerRemove(ctx, data[i].ID, types.ContainerRemoveOptions{})
+		err = cli.ContainerRemove(ctx, data[i].ID, container.RemoveOptions{})
 		if err != nil {
 			return err
 		}
@@ -245,11 +248,11 @@ func (c *PostgresContainer) Shutdown(ctx context.Context) error {
 		return err
 	}
 	defer cli.Close()
-	err = cli.ContainerStop(ctx, c.id, nil)
+	err = cli.ContainerStop(ctx, c.id, container.StopOptions{})
 	if err != nil {
 		return err
 	}
-	err = cli.ContainerRemove(ctx, c.id, types.ContainerRemoveOptions{})
+	err = cli.ContainerRemove(ctx, c.id, container.RemoveOptions{})
 	if err != nil {
 		return err
 	}
