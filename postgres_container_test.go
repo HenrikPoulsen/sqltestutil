@@ -2,9 +2,10 @@ package sqltestutil_test
 
 import (
 	"context"
-	"github.com/HenrikPoulsen/sqltestutil"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/HenrikPoulsen/sqltestutil/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStartPostgresContainer(t *testing.T) {
