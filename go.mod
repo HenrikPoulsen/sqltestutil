@@ -1,4 +1,4 @@
-module github.com/HenrikPoulsen/sqltestutil
+module github.com/HenrikPoulsen/sqltestutil/v2
 
 go 1.24.0
 
